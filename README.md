@@ -1,0 +1,45 @@
+# moltenvk-static
+
+Static MoltenVK packaging for **ARM64 macOS 14 and later**.
+
+MoltenVK pin is **1.4.2**, commit
+`db66022459ffb663aa2b50f6b018bc2e124f5edf`.
+Release artifact:
+`moltenvk-1.4.2-aarch64-apple-darwin-macos14.tar.gz`.
+
+## Build from source
+
+On a Mac with full Xcode selected, Git, Python 3, and the tools required by
+MoltenVK's dependency build installed:
+
+```sh
+MACOSX_DEPLOYMENT_TARGET=14.0 cargo run --features build-moltenvk --example probe
+```
+
+This downloads MoltenVK source and its dependencies, then builds static archives
+with LTO disabled.
+
+System dependencies
+* Apple frameworks
+* C++ runtime
+
+## Produce a release artifact
+
+```sh
+python3 scripts/moltenvk.py package dist
+MOLTENVK_STATIC_DIR="$PWD/dist/artifact" \
+  MACOSX_DEPLOYMENT_TARGET=14.0 cargo run --example probe
+```
+
+## Consume an artifact
+
+Python 3 is required during Cargo builds, including prebuilt-library builds.
+For a local unpacked artifact, set `MOLTENVK_STATIC_DIR` as above. This path makes
+no network requests. Otherwise, configure a release URL and its expected digest:
+
+```sh
+export MOLTENVK_ARTIFACT_URL='https://your-release-host/path/to/artifact.tar.gz'
+export MOLTENVK_ARTIFACT_SHA256='<64-character SHA-256 digest>'
+export MACOSX_DEPLOYMENT_TARGET=14.0
+cargo build
+```
