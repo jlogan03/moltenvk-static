@@ -1,0 +1,42 @@
+name: Build static archive
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "14.0"
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v7
+      # MoltenVK's dependency scripts use distutils, removed in Python 3.12.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+      - name: Test artifact handling
+        run: cargo +stable test --locked -p moltenvk-build
+      - name: Build and package MoltenVK
+        run: cargo +stable run --locked -p moltenvk-build -- dist
+      - name: Build examples
+        env:
+          MOLTENVK_STATIC_DIR: ${{ github.workspace }}/dist/artifact
+        run: cargo +stable build --locked --example probe
+      - name: Upload archive and checksum
+        uses: actions/upload-artifact@v7
+        with:
+          name: moltenvk-aarch64-apple-darwin-macos14
+          path: |
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
+          if-no-files-found: error
+          compression-level: 0
