@@ -17,6 +17,7 @@ use walkdir::WalkDir;
 const VERSION: &str = "1.4.2";
 const REVISION: &str = "db66022459ffb663aa2b50f6b018bc2e124f5edf";
 const ARTIFACT: &str = "moltenvk-1.4.2-aarch64-apple-darwin-macos14.tar.gz";
+const SOURCE_PATCH: &str = include_str!("../patches/swapchain-alias.patch");
 
 fn baseline() -> Value {
     json!({
@@ -24,6 +25,7 @@ fn baseline() -> Value {
         "revision": REVISION,
         "target": "aarch64-apple-darwin",
         "deployment_target": "14.0",
+        "patches": { "swapchain-alias.patch": format!("{:x}", Sha256::digest(SOURCE_PATCH)) },
     })
 }
 
@@ -160,6 +162,22 @@ fn build(work: &Path, destination: &Path) -> Result<()> {
         )? == REVISION,
         "MoltenVK checkout does not match the pinned revision"
     );
+    // Register the EXT name against its KHR implementation when exported aliases are hidden.
+    let patch = work.join("swapchain-alias.patch");
+    fs::write(&patch, SOURCE_PATCH)?;
+    if !Command::new("git")
+        .args(["apply", "--reverse", "--check"])
+        .arg(&patch)
+        .current_dir(&source)
+        .output()?
+        .status
+        .success()
+    {
+        run(Command::new("git")
+            .arg("apply")
+            .arg(&patch)
+            .current_dir(&source))?;
+    }
     // Apply the same settings to upstream's nested dependency builds.
     let config = work.join("build.xcconfig");
     fs::write(

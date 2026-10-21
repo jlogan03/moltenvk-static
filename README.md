@@ -7,6 +7,9 @@ MoltenVK pin is **1.4.2**, commit
 Release artifact:
 `moltenvk-1.4.2-aarch64-apple-darwin-macos14.tar.gz`.
 
+The build applies a one-line patch to MoltenVK to register `vkReleaseSwapchainImagesEXT`
+against its KHR implementation when Vulkan symbols are hidden.
+
 ## Build from source
 
 On a Mac with full Xcode selected, Git, and the tools required by
