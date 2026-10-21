@@ -9,7 +9,7 @@ Release artifact:
 
 ## Build from source
 
-On a Mac with full Xcode selected, Git, Python 3, and the tools required by
+On a Mac with full Xcode selected, Git, and the tools required by
 MoltenVK's dependency build installed:
 
 ```sh
@@ -26,14 +26,13 @@ System dependencies
 ## Produce a release artifact
 
 ```sh
-python3 scripts/moltenvk.py package dist
+cargo run -p moltenvk-build -- dist
 MOLTENVK_STATIC_DIR="$PWD/dist/artifact" \
   MACOSX_DEPLOYMENT_TARGET=14.0 cargo run --example probe
 ```
 
 ## Consume an artifact
 
-Python 3 is required during Cargo builds, including prebuilt-library builds.
 For a local unpacked artifact, set `MOLTENVK_STATIC_DIR` as above. This path makes
 no network requests. Otherwise, configure a release URL and its expected digest:
 
@@ -43,3 +42,9 @@ export MOLTENVK_ARTIFACT_SHA256='<64-character SHA-256 digest>'
 export MACOSX_DEPLOYMENT_TARGET=14.0
 cargo build
 ```
+
+Cargo builds and release packaging share the Rust `build-support` crate. Prebuilt
+artifacts require no Python installation. Source builds still need the tools
+required by MoltenVK's dependency build.
+
+Run the artifact tests with `cargo test -p moltenvk-build`.

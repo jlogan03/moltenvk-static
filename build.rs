@@ -1,14 +1,13 @@
-use std::{env, path::PathBuf, process::Command};
+use std::{env, path::PathBuf};
 
 fn main() {
-    println!("cargo:rerun-if-changed=scripts/moltenvk.py");
+    println!("cargo:rerun-if-changed=build.rs");
     for name in [
         "MOLTENVK_STATIC_DIR",
         "MOLTENVK_ARTIFACT_URL",
         "MOLTENVK_ARTIFACT_SHA256",
         "MACOSX_DEPLOYMENT_TARGET",
         "DEVELOPER_DIR",
-        "PYTHON",
     ] {
         println!("cargo:rerun-if-env-changed={name}");
     }
@@ -31,16 +30,8 @@ fn main() {
         "moltenvk-static requires macOS 14 or later"
     );
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    let mut command = Command::new(env::var_os("PYTHON").unwrap_or_else(|| "python3".into()));
-    command.args(["scripts/moltenvk.py", "prepare"]).arg(&out);
-    if env::var_os("CARGO_FEATURE_BUILD_MOLTENVK").is_some() {
-        command.arg("--source");
-    }
-    assert!(
-        command.status().expect("could not run Python 3").success(),
-        "MoltenVK preparation failed"
-    );
-    let lib = out.join("artifact");
+    let lib = moltenvk_build::prepare(&out, env::var_os("CARGO_FEATURE_BUILD_MOLTENVK").is_some())
+        .unwrap_or_else(|error| panic!("MoltenVK preparation failed: {error:#}"));
     println!("cargo:rustc-link-search=native={}", lib.display());
     println!("cargo:rustc-link-lib=static=MoltenVK");
     println!("cargo:rustc-link-lib=dylib=c++");

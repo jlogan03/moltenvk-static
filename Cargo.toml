@@ -7,8 +7,16 @@ description = "Static MoltenVK for ARM64 macOS"
 license = "MIT OR Apache-2.0"
 publish = false
 
+[workspace]
+members = ["build-support"]
+default-members = ["."]
+resolver = "3"
+
 [features]
 build-moltenvk = []
+
+[build-dependencies]
+moltenvk-build = { path = "build-support" }
 
 [dev-dependencies]
 ash = { version = "0.38", default-features = false, features = ["std"] }
