@@ -6,7 +6,6 @@ fn main() {
         "MOLTENVK_STATIC_DIR",
         "MOLTENVK_ARTIFACT_URL",
         "MOLTENVK_ARTIFACT_SHA256",
-        "MACOSX_DEPLOYMENT_TARGET",
         "DEVELOPER_DIR",
     ] {
         println!("cargo:rerun-if-env-changed={name}");
@@ -19,16 +18,6 @@ fn main() {
         );
         return;
     }
-    let version = env::var("MACOSX_DEPLOYMENT_TARGET")
-        .expect("set MACOSX_DEPLOYMENT_TARGET=14.0 (or later) for the final application too");
-    assert!(
-        version
-            .split('.')
-            .next()
-            .and_then(|v| v.parse::<u32>().ok())
-            .is_some_and(|v| v >= 14),
-        "moltenvk-static requires macOS 14 or later"
-    );
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let lib = moltenvk_build::prepare(&out, env::var_os("CARGO_FEATURE_BUILD_MOLTENVK").is_some())
         .unwrap_or_else(|error| panic!("MoltenVK preparation failed: {error:#}"));

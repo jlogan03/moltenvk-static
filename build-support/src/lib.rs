@@ -16,7 +16,7 @@ use walkdir::WalkDir;
 
 const VERSION: &str = "1.4.2";
 const REVISION: &str = "db66022459ffb663aa2b50f6b018bc2e124f5edf";
-const ARTIFACT: &str = "moltenvk-1.4.2-aarch64-apple-darwin-macos14.tar.gz";
+const ARTIFACT: &str = "moltenvk-1.4.2-aarch64-apple-darwin-macos12.tar.gz";
 const SOURCE_PATCH: &str = include_str!("../patches/swapchain-alias.patch");
 
 fn baseline() -> Value {
@@ -24,7 +24,7 @@ fn baseline() -> Value {
         "schema": 1,
         "revision": REVISION,
         "target": "aarch64-apple-darwin",
-        "deployment_target": "14.0",
+        "deployment_target": "12.0",
         "patches": { "swapchain-alias.patch": format!("{:x}", Sha256::digest(SOURCE_PATCH)) },
     })
 }
@@ -184,7 +184,7 @@ fn build(work: &Path, destination: &Path) -> Result<()> {
         &config,
         concat!(
             "ARCHS = arm64\nONLY_ACTIVE_ARCH = NO\n",
-            "MACOSX_DEPLOYMENT_TARGET = 14.0\n",
+            "MACOSX_DEPLOYMENT_TARGET = 12.0\n",
             "CODE_SIGNING_ALLOWED = NO\nLLVM_LTO = NO\n",
             "GCC_SYMBOLS_PRIVATE_EXTERN = YES\n",
             "GCC_PREPROCESSOR_DEFINITIONS = $(inherited) MVK_HIDE_VULKAN_SYMBOLS=1\n",

@@ -1,11 +1,11 @@
 # moltenvk-static
 
-Static MoltenVK packaging for **ARM64 macOS 14 and later**.
+Static MoltenVK packaging for **ARM64 macOS 12 and later**. CI builds on macOS 15.
 
 MoltenVK pin is **1.4.2**, commit
 `db66022459ffb663aa2b50f6b018bc2e124f5edf`.
 Release artifact:
-`moltenvk-1.4.2-aarch64-apple-darwin-macos14.tar.gz`.
+`moltenvk-1.4.2-aarch64-apple-darwin-macos12.tar.gz`.
 
 The build applies a one-line patch to MoltenVK to register `vkReleaseSwapchainImagesEXT`
 against its KHR implementation when Vulkan symbols are hidden.
@@ -16,7 +16,7 @@ On a Mac with full Xcode selected, Git, and the tools required by
 MoltenVK's dependency build installed:
 
 ```sh
-MACOSX_DEPLOYMENT_TARGET=14.0 cargo run --features build-moltenvk --example probe
+cargo run --features build-moltenvk --example probe
 ```
 
 This downloads MoltenVK source and its dependencies, then builds static archives
@@ -30,8 +30,7 @@ System dependencies
 
 ```sh
 cargo run -p moltenvk-build -- dist
-MOLTENVK_STATIC_DIR="$PWD/dist/artifact" \
-  MACOSX_DEPLOYMENT_TARGET=14.0 cargo run --example probe
+MOLTENVK_STATIC_DIR="$PWD/dist/artifact" cargo run --example probe
 ```
 
 ## Consume an artifact
@@ -42,7 +41,6 @@ no network requests. Otherwise, configure a release URL and its expected digest:
 ```sh
 export MOLTENVK_ARTIFACT_URL='https://your-release-host/path/to/artifact.tar.gz'
 export MOLTENVK_ARTIFACT_SHA256='<64-character SHA-256 digest>'
-export MACOSX_DEPLOYMENT_TARGET=14.0
 cargo build
 ```
 

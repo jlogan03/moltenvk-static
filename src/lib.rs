@@ -1,4 +1,4 @@
-//! Static MoltenVK for ARM64 macOS 14 and later.
+//! Static MoltenVK for ARM64 macOS 12 and later.
 //!
 //! Pass [`vkGetInstanceProcAddr`] to a Vulkan loader adapter. This crate does
 //! not initialize Vulkan or change kernel compilation. Its binding uses the
