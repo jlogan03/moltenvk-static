@@ -1,0 +1,15 @@
+diff --git a/spirv_parser.cpp b/spirv_parser.cpp
+index 2cf232a5..690befea 100644
+--- a/spirv_parser.cpp
++++ b/spirv_parser.cpp
+@@ -1333,6 +1333,10 @@ void Parser::parse(const Instruction &instruction)
+ 			}
+ 			else
+ 			{
++				// Clear the merge marker when collapsing a selection to a direct branch.
++				if (current_block->merge == SPIRBlock::MergeSelection)
++					ir.block_meta[current_block->next_block] &= ~ParsedIR::BLOCK_META_SELECTION_MERGE_BIT;
++
+ 				// Collapse loops if we have to.
+ 				bool collapsed_loop = current_block->true_block == current_block->merge_block &&
+ 				                      current_block->merge == SPIRBlock::MergeLoop;

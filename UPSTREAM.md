@@ -1,6 +1,6 @@
 # Upstream work
 
-Issues to submit to MoltenVK.
+Issues to submit to MoltenVK and its dependencies.
 
 ## 1. Register the swapchain alias when Vulkan symbols are hidden
 
@@ -33,3 +33,23 @@ The failure sequence is:
 
 Zero-timeout polling can trigger this sequence. Early completion could let a
 consumer read or reuse buffers while the GPU still uses them.
+
+## 3. Preserve code after collapsed selections in SPIRV-Cross
+
+SPIRV-Cross revision
+[`6c09849fe88c48eaed08413aa022aaa136a3a057`](https://github.com/KhronosGroup/SPIRV-Cross/tree/6c09849fe88c48eaed08413aa022aaa136a3a057),
+used by MoltenVK 1.4.2.
+
+When both targets of `OpBranchConditional` are its selection merge block, the
+parser replaces the conditional with a direct branch. It leaves the target
+marked as a selection merge, so code generation skips that block. In krnl's
+conversions to f16, this drops assignments and leaves the output uninitialized.
+
+[collapsed-selection.patch](build-support/patches/collapsed-selection.patch)
+clears the stale marker. Translating krnl's f32-to-f16 shader with the patch
+restores the three missing assignments.
+
+The [minimal reproduction](build-support/patches/collapsed-selection.spvasm)
+passes SPIRV-Tools validation for Vulkan 1.1. It must write `1` to its buffer.
+Unpatched SPIRV-Cross emits an empty Metal kernel; the patch restores the store.
+Validation on Metal is pending.

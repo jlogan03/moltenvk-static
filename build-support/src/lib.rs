@@ -18,6 +18,7 @@ const VERSION: &str = "1.4.2";
 const REVISION: &str = "db66022459ffb663aa2b50f6b018bc2e124f5edf";
 const ARTIFACT: &str = "moltenvk-1.4.2-aarch64-apple-darwin-macos12.tar.gz";
 const SOURCE_PATCH: &str = include_str!("../patches/swapchain-alias.patch");
+const SPIRV_CROSS_PATCH: &str = include_str!("../patches/collapsed-selection.patch");
 
 fn baseline() -> Value {
     json!({
@@ -25,7 +26,10 @@ fn baseline() -> Value {
         "revision": REVISION,
         "target": "aarch64-apple-darwin",
         "deployment_target": "12.0",
-        "patches": { "swapchain-alias.patch": format!("{:x}", Sha256::digest(SOURCE_PATCH)) },
+        "patches": {
+            "swapchain-alias.patch": format!("{:x}", Sha256::digest(SOURCE_PATCH)),
+            "collapsed-selection.patch": format!("{:x}", Sha256::digest(SPIRV_CROSS_PATCH)),
+        },
     })
 }
 
@@ -135,6 +139,45 @@ fn output(command: &mut Command) -> Result<String> {
     Ok(String::from_utf8(output.stdout)?.trim().to_owned())
 }
 
+fn checkout(repository: &str, revision: &str, source: &Path) -> Result<()> {
+    if !source.exists() {
+        run(Command::new("git")
+            .args(["clone", "--no-checkout", "--filter=blob:none", repository])
+            .arg(source))?;
+        run(Command::new("git")
+            .args(["checkout", "--detach", revision])
+            .current_dir(source))?;
+    }
+    ensure!(
+        output(
+            Command::new("git")
+                .args(["rev-parse", "HEAD"])
+                .current_dir(source)
+        )? == revision,
+        "{} checkout does not match the pinned revision",
+        source.display()
+    );
+    Ok(())
+}
+
+fn apply_patch(source: &Path, patch: &Path, contents: &str) -> Result<()> {
+    fs::write(patch, contents)?;
+    if !Command::new("git")
+        .args(["apply", "--reverse", "--check"])
+        .arg(patch)
+        .current_dir(source)
+        .output()?
+        .status
+        .success()
+    {
+        run(Command::new("git")
+            .arg("apply")
+            .arg(patch)
+            .current_dir(source))?;
+    }
+    Ok(())
+}
+
 fn build(work: &Path, destination: &Path) -> Result<()> {
     ensure!(
         cfg!(target_os = "macos"),
@@ -142,42 +185,24 @@ fn build(work: &Path, destination: &Path) -> Result<()> {
     );
     fs::create_dir_all(work)?;
     let source = work.join("MoltenVK");
-    if !source.exists() {
-        run(Command::new("git")
-            .args([
-                "clone",
-                "--depth",
-                "1",
-                "--branch",
-                &format!("v{VERSION}"),
-                "https://github.com/KhronosGroup/MoltenVK.git",
-            ])
-            .arg(&source))?;
-    }
-    ensure!(
-        output(
-            Command::new("git")
-                .args(["rev-parse", "HEAD"])
-                .current_dir(&source)
-        )? == REVISION,
-        "MoltenVK checkout does not match the pinned revision"
-    );
-    // Register the EXT name against its KHR implementation when exported aliases are hidden.
-    let patch = work.join("swapchain-alias.patch");
-    fs::write(&patch, SOURCE_PATCH)?;
-    if !Command::new("git")
-        .args(["apply", "--reverse", "--check"])
-        .arg(&patch)
-        .current_dir(&source)
-        .output()?
-        .status
-        .success()
-    {
-        run(Command::new("git")
-            .arg("apply")
-            .arg(&patch)
-            .current_dir(&source))?;
-    }
+    checkout(
+        "https://github.com/KhronosGroup/MoltenVK.git",
+        REVISION,
+        &source,
+    )?;
+    apply_patch(&source, &work.join("swapchain-alias.patch"), SOURCE_PATCH)?;
+    let spirv_cross = work.join("SPIRV-Cross");
+    let revision = fs::read_to_string(source.join("ExternalRevisions/SPIRV-Cross_repo_revision"))?;
+    checkout(
+        "https://github.com/KhronosGroup/SPIRV-Cross.git",
+        revision.trim(),
+        &spirv_cross,
+    )?;
+    apply_patch(
+        &spirv_cross,
+        &work.join("collapsed-selection.patch"),
+        SPIRV_CROSS_PATCH,
+    )?;
     // Apply the same settings to upstream's nested dependency builds.
     let config = work.join("build.xcconfig");
     fs::write(
@@ -191,7 +216,9 @@ fn build(work: &Path, destination: &Path) -> Result<()> {
         ),
     )?;
     run(Command::new("./fetchDependencies")
-        .arg("--macos")
+        // Use our patched checkout; the default fetch would discard its changes.
+        .args(["--macos", "--spirv-cross-root"])
+        .arg(&spirv_cross)
         .current_dir(&source)
         .env("XCODE_XCCONFIG_FILE", &config))?;
     run(Command::new("xcodebuild")

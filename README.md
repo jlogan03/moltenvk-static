@@ -9,6 +9,8 @@ Release artifact:
 
 The build applies a one-line patch to MoltenVK to register `vkReleaseSwapchainImagesEXT`
 against its KHR implementation when Vulkan symbols are hidden.
+It also patches SPIRV-Cross to retain code after collapsed selections. See
+[UPSTREAM.md](UPSTREAM.md).
 
 ## Build from source
 

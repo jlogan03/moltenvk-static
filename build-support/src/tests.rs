@@ -96,18 +96,15 @@ fn paths_and_links_cannot_escape() -> Result<()> {
 }
 
 #[test]
-fn wrong_source_revision_is_rejected() -> Result<()> {
+fn incompatible_artifact_metadata_is_rejected() -> Result<()> {
     let root = tempfile::tempdir()?;
     let artifact = fixture(root.path())?;
-    let mut manifest = baseline();
-    manifest["revision"] = json!("wrong");
-    fs::write(artifact.join("manifest.json"), manifest.to_string())?;
-    assert!(
-        validate(&artifact)
-            .unwrap_err()
-            .to_string()
-            .contains("revision")
-    );
+    for field in ["revision", "patches"] {
+        let mut manifest = baseline();
+        manifest.as_object_mut().unwrap().remove(field);
+        fs::write(artifact.join("manifest.json"), manifest.to_string())?;
+        assert!(validate(&artifact).unwrap_err().to_string().contains(field));
+    }
     Ok(())
 }
 
